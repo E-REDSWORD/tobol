@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لعبة طبول الحرب - النسخة المحسنة</title>
+  <style>
+    /* التنسيقات الأساسية المعدلة */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #001510);
+      color: #fff;
+      text-align: center;
+      direction: rtl; /* دعم اللغة العربية */
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding: 10px;
+    }
+
+    .container {
+      max-width: 100%;
+      margin: 0 auto;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 15px;
+      padding: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    h1 {
+      color: #ffcc00;
+      font-size: 2.2rem;
+      margin: 10px 0;
+      text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+      background: linear-gradient(45deg, #ffcc00, #ff6600);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .team-inputs, .selection {
+      margin: 15px 0;
+      padding: 12px;
+      background: rgba(30, 30, 40, 0.7);
+      border-radius: 12px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 8px 0;
+      border: 2px solid #444;
+      border-radius: 8px;
+      background: #222;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    input::placeholder {
+      color: #aaa;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #ffcc00;
+    }
+
+    button {
+      padding: 12px 25px;
+      font-size: 18px;
+      cursor: pointer;
+      margin-top: 12px;
+      background: linear-gradient(45deg, #ff8c00, #ffcc00);
+      color: #000;
+      border: none;
+      border-radius: 30px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    /* شبكة الرموز الجديدة 9x9 مع منطقة مركزية معدلة */
+    .symbols-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 15px auto;
+      width: 100%;
+      max-width: 600px;
+    }
+    
+    .symbols-grid {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      grid-template-rows: repeat(9, 1fr);
+      gap: 3px;
+      width: 100%;
+      aspect-ratio: 1/1;
+      position: relative;
+    }
+
+    /* هنا يتم تعديل حجم الرموز - تم زيادة الحجم من 20px إلى 24px */
+    .symbol {
+      font-size: 24px;
+      background: linear-gradient(145deg, #2c3e50, #4a6491);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      padding: 2px;
+      z-index: 1;
+    }
+
+    .symbol:hover {
+      transform: scale(1.05);
+      background: linear-gradient(145deg, #4a6491, #2c3e50);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .symbol.disabled {
+      pointer-events: none;
+      opacity: 0.3;
+      transform: scale(0.95);
+    }
+
+    /* المنطقة المركزية للصورة - تم تعديلها لتصبح أوسع بعمود إضافي */
+    .center-image {
+      grid-row: 3 / 9;  /* تغطية 6 صفوف (من الصف 3 إلى 9) */
+      grid-column: 4 / 7; /* تغطية 3 أعمدة (من العمود 4 إلى 7) */
+      background: linear-gradient(135deg, #3a1c71, #d76d77, #ffaf7b);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+      border: 2px solid #ffcc00;
+      z-index: 2;
+    }
+
+    .center-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.85;
+    }
+
+    /* خلايا فارغة خلف الصورة */
+    .empty-cell {
+      background: transparent;
+    }
+
+    .effect-box {
+      margin: 20px auto;
+      font-size: 20px;
+      background: rgba(20, 20, 30, 0.9);
+      padding: 20px;
+      border-radius: 12px;
+      min-height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      white-space: pre-line;
+      border: 2px solid #444;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+      line-height: 1.6;
+      font-weight: bold;
+    }
+
+    #scoreDisplay {
+      font-size: 22px;
+      margin: 20px 0;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      border: 2px solid #ffcc00;
+    }
+
+    .score-value {
+      color: #ffcc00;
+      font-weight: bold;
+      font-size: 24px;
+    }
+
+    .round-info {
+      font-size: 24px;
+      margin: 15px 0;
+      color: #4dff4d;
+    }
+
+    .team-name {
+      color: #ff9966;
+      font-weight: bold;
+    }
+
+    .developer {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 12px;
+      margin: 20px 0;
+      border: 1px solid #444;
+    }
+
+    .developer h2 {
+      color: #ffcc00;
+      margin-bottom: 12px;
+      font-size: 1.5rem;
+    }
+
+    .developer ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    .developer li {
+      margin: 8px 0;
+      padding: 8px;
+      background: rgba(50, 50, 70, 0.5);
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .footer {
+      margin-top: 20px;
+      padding: 12px;
+      color: #aaa;
+      font-size: 13px;
+    }
+
+    .symbols-exhausted {
+      color: #ff5555;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+
+    /* استجابة التصميم للشاشات الصغيرة */
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      .symbols-grid {
+        max-width: 95vw;
+        gap: 2px;
+      }
+      
+      /* تعديل حجم الرموز في الشاشات المتوسطة */
+      .symbol {
+        font-size: 20px;
+      }
+      
+      .center-image {
+        grid-row: 1 / 10;
+        grid-column: 2 / 7;
+      }
+      
+      .effect-box {
+        font-size: 18px;
+        padding: 15px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      /* تعديل حجم الرموز في الشاشات الصغيرة */
+      .symbol {
+        font-size: 16px;
+        padding: 1px;
+      }
+      
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      .effect-box {
+        font-size: 16px;
+        padding: 12px;
+      }
+
+      #scoreDisplay {
+        font-size: 18px;
+        padding: 10px;
+      }
+      
+      .symbols-grid {
+        gap: 1px;
+      }
+      
+      .round-info {
+        font-size: 20px;
+      }
+      
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+      }
+      
+      .developer h2 {
+        font-size: 1.3rem;
+      }
+    }
+
+    @media (max-width: 380px) {
+      /* تعديل حجم الرموز في الشاشات الصغيرة جداً */
+      .symbol {
+        font-size: 14px;
+      }
+      
+      .round-info {
+        font-size: 18px;
+      }
+      
+      button {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+      
+      .developer li {
+        font-size: 12px;
+      }
+      
+      .footer {
+        font-size: 12px;
+      }
+    }
+
+    /* زر لعبة جديدة */
+    #newGameBtn {
+      margin-top: 20px;
+      padding: 12px 25px;
+      font-size: 18px;
+      cursor: pointer;
+      background: linear-gradient(45deg, #ff3300, #ff9900);
+      color: #fff;
+      border: none;
+      border-radius: 30px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      display: none;
+    }
+
+    #newGameBtn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+      background: linear-gradient(45deg, #ff5500, #ffaa00);
+    }
+    
+    /* ألوان التأثيرات */
+    .effect-enemy {
+      color: #4dff4d;
+    }
+    
+    .effect-self {
+      color: #ff5555;
+    }
+  </style>
+</head>
+<body>
+  <!-- محتوى اللعبة -->
+  <div class="container">
+    <div class="developer">
+      <h2>𖤍 | 𝐑𝐄𝐃𝐒𝐖𝐎𝐑𝐃 & فريق التطوير</h2>
+      <ul>
+        <li><strong>𖤍 | 𝐑𝐄𝐃𝐒𝐖𝐎𝐑𝐃</strong> – قائد المشروع_برمجة</li>
+        <li>علي المطور – واجهة المستخدم وتجربة اللعب</li>
+        <li>سارا – جرافيك وتصميم</li>
+      </ul>
+    </div>
+
+    <h1>لعبة طبول الحرب ⚔️</h1>
+
+    <div class="team-inputs">
+      <input type="text" id="team1" placeholder="اسم الفريق الأول" value="الفريق الأحمر" />
+      <input type="text" id="team2" placeholder="اسم الفريق الثاني" value="الفريق الأزرق" />
+      <input type="number" id="startScore" placeholder="النقاط الابتدائية" value="400" />
+      <button onclick="startGame()">ابدأ اللعبة</button>
+    </div>
+
+    <div class="selection" style="display:none">
+      <div class="round-info" id="roundInfo">الجولة 1</div>
+      <p><strong id="currentTeam" class="team-name"></strong> اختر رمزك:</p>
+
+      <!-- حاوية شبكة الرموز -->
+      <div class="symbols-container">
+        <div class="symbols-grid" id="symbolGrid"></div>
+      </div>
+      
+      <div id="symbolsExhausted" class="symbols-exhausted" style="display:none">
+        لقد تم استخدام جميع الرموز! اللعبة انتهت.
+      </div>
+
+      <div class="effect-box" id="effectBox">اختر رمزًا لبدء الجولة الأولى!</div>
+
+      <button id="nextBtn" style="display:none; margin-top:20px;" onclick="nextTurn()">التالي</button>
+
+      <div id="scoreDisplay"></div>
+    </div>
+
+    <button id="newGameBtn" onclick="newGame()">لعبة جديدة</button>
+    
+    <div class="footer">
+      تم تطوير اللعبة بدقة لتكون متوافقة مع الهواتف الذكية عن طريق فريق تطوير __ 𖤍 | 𝐑𝐄𝐃𝐒𝐖𝐎𝐑𝐃 - استمتع بالتجربة! الاصدار 0.9
+    </div>
+  </div>
+
+  <script>
+    // مجموعة الرموز بالترتيب الثابت المطلوب
+    const fixedOrderedSymbols = [
+      // الأرقام (20 رمزًا)
+      '1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20',
+      // الحيوانات (20 رمزًا)
+      '🐘','🦒','🦁','🦌','🐪','🦘','🐎','🐄','🐸','🐟','🐢','🐍','🐈','🐀','🐓','🦆','🕊️','🦋','🐌','🐇',
+      // الأشكال الأخرى (20 رمزًا)
+      '❤️','👁️','✈️','⚽','✏️','🪶','🌛','⭐','✉️','📞','📷','🔍','🧲','💣','🔑','🔒','🏠','💼','🎵','💡'
+    ];
+
+    // مجموعة التأثيرات الجديدة مع المسميات والصور المطلوبة
+    const newEffects = [
+      { name: "قبضة ريدسورد المحكمة أطبقت على موارد العدو", points: 36, image: "himo4.png" },
+      { name: "لغز العسيري المحير أربك استراتيجية العدو", points: 29, image: "alasiri.png" },
+      { name: "عبقرية ماجد التكتيكية تقلب الطاولة", points: 41, image: "majd4.png" },
+      { name: "لواء برستيج السابع يقتحم معسكر العدو", points: 29, image: "prpr5.png" },
+      { name: "تنمر أسير الجارح", points: 34, image: "Asire3.png" },
+      { name: "قوات ريدسورد الجامحة", points: 44, image: "himo6.png" },
+      { name: "طلقة ماجد المعكوسة", points: -14, image: "majd6.png" },
+      { name: "كرسي بريستيج المتحرك", points: -28, image: "prpr3.png" },
+      { name: "تميمة حظ نارا المنحوسة", points: -18, image: "nara.png" },
+      { name: "اندفاع ماجد المتهور", points: -35, image: "majd3.png" },
+      { name: "رمح ريدسورد البلاستيكي", points: 2, image: "himo2.png" },
+      { name: "حصان سباق ماجد الاعرج", points: 23, image: "majd2.png" },
+      { name: "تنين سماوي", points: 52, image: "tnin.png" },
+      { name: "قوات بارفان النارية", points: 29, image: "barfan2.png" },
+      { name: "روائح كريهة تفوح من فريقك", points: -8, image: "afn.png" },
+      { name: "تكليجات هيون لا تنتهي", points: 9, image: "hyon2.png" },
+      { name: "شبح نبض الاحول", points: -22, image: "shph.png" },
+      { name: "شبشب جدتي زرعة الطائر", points: 33, image: "zraa.png" },
+      { name: "دراجة برستيج المقربعة", points: -20, image: "prpr2.png" },
+      { name: "هرمونات حفصة المتقلبة", points: -28, image: "hfsa.png" },
+      { name: "معسل ناي الفاسد", points: -18, image: "nay1.png" },
+      { name: "سوالف ماريا مع الجدران اتت بثمارها", points: 13, image: "maria.png" },
+      { name: "تمرد داخلي بقيادة عبود", points: -10, image: "abod.png" },
+      { name: "قنبلة القيصر النووية", points: 49, image: "nwawi49.png" },
+      { name: "انفجار نجم كوني", points: 52, image: "ngm52.png" },
+      { name: "تحالفات ريدسورد وماجد النووية", points: 26, image: "himo7.png" },
+      { name: "مسدس أسير المائي", points: 0, image: "Asire2.png" },
+      { name: "قذيفة مدفع سان خوسيه", points: 17, image: "san.png" },
+      { name: "تابوت جثة كيمو", points: -18, image: "kimo.png" },
+      { name: "شعوذة وبخور عهود بدأت في العمل", points: 7, image: "aohod.png" },
+      { name: "قيادة بارفان المحنكة", points: 14, image: "barfan.png" },
+      { name: "خيشة بصل سارا كتمت العدو برائحتها", points: 16, image: "sara2.png" },
+      { name: "شفرات ساطور فارس", points: 10, image: "faris.png" },
+      { name: "اسطول ريدسورد الروسي", points: 39, image: "himo.png" },
+      { name: "رفسة دونات المدوية", points: 15, image: "donat.png" },
+      { name: "شنب سوسو الوردي", points: 11, image: "soso.png" },
+      { name: "قنبلة وطن عمري الهجومية", points: 32, image: "wtn.png" },
+      { name: "عطسة خيالي المفجعة سببت زوبعة بالروم", points: -37, image: "khiali.png" },
+      { name: "كُراثة هيون الفاسدة", points: -16, image: "hion.png" },
+      { name: "تخزينة شامخ المخدرة", points: 27, image: "Sh.png" },
+      { name: "اندومي الفارقة بنكهة الصراصير", points: -22, image: "fraga.png" },
+      { name: "دبابة سنتوب المحترفة", points: 21, image: "sntob.png" },
+      { name: "فهاوة سلتوح الضايعة", points: 0, image: "sltoh.png" },
+      { name: "حظ دندونة المصخم", points: 0, image: "dndona.png" },
+      { name: "لدغة خيال وقمر الضايعة", points: -19, image: "qmr.png" },
+      { name: "برود ناي الخبيثة", points: 36, image: "nay2.png" },
+      { name: "طلاسم أسير", points: 39, image: "Asire1.png" },
+      { name: "نفسية الجدة لينو المضروبة", points: -12, image: "lino.png" },
+      { name: "عيون دينيز الحولا", points: -9, image: "diniz.png" },
+      { name: "لقافة دنو الفضولية", points: -21, image: "dno.png" },
+      { name: "فلسفة أنس الهابطة", points: -16, image: "ans.png" },
+      { name: "فصلات امجد المتقلبة", points: -34, image: "amgd.png" },
+      { name: "طقطقة مذهلة", points: 38, image: "modhla.png" },
+      { name: "حمار شاكر العصبي", points: -29, image: "shakr.png" },
+      { name: "طبخ جوكر الفاسد يسبب مغص شديد", points: -28, image: "jokr.png" },
+      { name: "سم بريستيج القاتل", points: 33, image: "prpr1.png" },
+      { name: "رفسة حمار جحا", points: -38, image: "donkey.png" },
+      { name: "صراخ سارا المزعج", points: -8, image: "sara1.png" },
+      { name: "شخير سيف العالي", points: 27, image: "sif.png" },
+      { name: "ثرثرة العمدة الفارغة", points: -18, image: "omda.png" },
+      { name: "عكاز الجدة سماسم يتصل بالدعم الفني هههه", points: -24, image: "smasm.png" }
+    ];
+
+    // أسماء الجولات الحماسية
+    const roundNamesPool = [
+      "جولة الفجر الدامي", "جولة صدى المعركة", "جولة أنفاس الشيطان", "جولة عواء الذئاب",
+      "جولة صرخات الأشباح", "جولة رقصة الموت", "جولة ظل الخيانة", "جولة قلب الظلام",
+      "جولة بوابة الجحيم", "جولة نهاية الزمن", "جولة العاصفة السوداء", "جولة نبض الرعب",
+      "جولة صمت المقابر", "جولة حافة الهاوية", "جولة نار الانتقام", "جولة لعنة الأجداد"
+    ];
+
+    // تعليقات الفوز
+    const winCommentsPool = [
+      "لقد سقط الجدار! {team} يهزم {loser} وينتصر! 🏆",
+      "النصر الساحق! {team} يهزم {loser} ببراعة! 🎯",
+      "السيادة المطلقة! {team} يسيطر على المعركة! 👑",
+      "الإمبراطورية تسقط! {loser} ينهزم أمام {team}! 🏰",
+      "الأسطورة تتحقق! {team} ينتصر على {loser}! 🦸",
+      "القيادة العسكرية تثبت تفوقها! {team} يهزم {loser}! 🪖",
+      "الاستراتيجية البارعة تقود {team} للنصر! 🧠",
+      "الضربة القاضية! {team} ينهي {loser}! 🥊"
+    ];
+
+    let teams = [], scores = {}, currentTurn = 0, round = 1;
+    let waitingForNext = false;
+    let remainingSymbols = [];
+    let symbolEffectsMap = new Map();
+    let usedRoundNames = [];
+    let currentRoundName = "";
+
+    // دالة لخلط المصفوفة (Fisher-Yates shuffle)
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // دالة للحصول على تعليق الفوز
+    function getWinComment(winner, loser) {
+      const comment = winCommentsPool[Math.floor(Math.random() * winCommentsPool.length)];
+      return comment
+        .replace(/{team}/g, winner)
+        .replace(/{loser}/g, loser);
+    }
+
+    function startGame() {
+      const t1 = document.getElementById('team1').value.trim() || "الفريق الأحمر";
+      const t2 = document.getElementById('team2').value.trim() || "الفريق الأزرق";
+      const startScore = parseInt(document.getElementById('startScore').value) || 400;
+
+      teams = [t1, t2];
+      scores = {[t1]: startScore, [t2]: startScore};
+
+      // إعادة تعيين الرموز المتبقية بالترتيب الثابت
+      remainingSymbols = [...fixedOrderedSymbols];
+
+      // تخصيص التأثيرات الجديدة بشكل عشوائي للرموز في هذه المعركة
+      symbolEffectsMap = new Map();
+      let availableEffects = shuffleArray([...newEffects]);
+
+      // تخصيص تأثير فريد لكل رمز في الترتيب الثابت
+      for (let i = 0; i < fixedOrderedSymbols.length; i++) {
+          const currentSymbol = fixedOrderedSymbols[i];
+          const assignedEffect = availableEffects[i];
+          symbolEffectsMap.set(currentSymbol, assignedEffect);
+      }
+
+      // خلط أسماء الجولات وإعادة تعيينها
+      usedRoundNames = shuffleArray([...roundNamesPool]);
+
+      document.querySelector('.team-inputs').style.display = 'none';
+      document.querySelector('.selection').style.display = 'block';
+      document.getElementById('symbolsExhausted').style.display = 'none';
+      document.getElementById('newGameBtn').style.display = 'block';
+      waitingForNext = false;
+      currentTurn = 0;
+      round = 1;
+
+      showTurn();
+    }
+
+    function newGame() {
+      // إعادة تعيين المتغيرات
+      teams = [];
+      scores = {};
+      currentTurn = 0;
+      round = 1;
+      waitingForNext = false;
+      remainingSymbols = [];
+      symbolEffectsMap = new Map();
+      usedRoundNames = [];
+      currentRoundName = "";
+
+      // إعادة عرض قسم إدخال الفرق وإخفاء قسم اللعبة
+      document.querySelector('.team-inputs').style.display = 'block';
+      document.querySelector('.selection').style.display = 'none';
+      document.getElementById('newGameBtn').style.display = 'none';
+    }
+
+    function showTurn() {
+      // اختيار اسم جولة فريد
+      if (usedRoundNames.length === 0) {
+        usedRoundNames = shuffleArray([...roundNamesPool]);
+      }
+      currentRoundName = usedRoundNames.shift();
+
+      document.getElementById('roundInfo').textContent = `${currentRoundName} - الجولة ${round}`;
+      document.getElementById('currentTeam').textContent = `دور ${teams[currentTurn]}`;
+
+      if (!waitingForNext) {
+        document.getElementById('effectBox').textContent = "اختر رمزًا لبدء هذه الجولة!";
+      }
+
+      const grid = document.getElementById('symbolGrid');
+      grid.innerHTML = '';
+
+      if (remainingSymbols.length === 0) {
+        document.getElementById('symbolsExhausted').style.display = 'block';
+        document.getElementById('effectBox').innerHTML =
+          "لقد تم استخدام جميع الرموز! اللعبة انتهت.\n\n" +
+          `<strong style="color:#ffcc00">${teams[0]}: ${scores[teams[0]]} نقطة | ${teams[1]}: ${scores[teams[1]]} نقطة</strong>`;
+        document.getElementById('nextBtn').style.display = 'none';
+        return;
+      }
+
+      // إنشاء خلية الصورة المركزية - تظهر tobol.png في البداية
+      const centerCell = document.createElement('div');
+      centerCell.className = 'center-image';
+      centerCell.innerHTML = '<img src="tobol.png" alt="صورة المعركة" id="centerImage">';
+      grid.appendChild(centerCell);
+      
+      // إنشاء خلايا الرموز
+      let symbolIndex = 0;
+      for (let row = 1; row <= 9; row++) {
+        for (let col = 1; col <= 9; col++) {
+          // تخطي المنطقة المركزية (الأعمدة 4-6 والصفوف 3-8)
+          if (col >= 4 && col <= 6 && row >= 3 && row <= 8) {
+            // خلية فارغة في منطقة الصورة
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'symbol disabled empty-cell';
+            grid.appendChild(emptyCell);
+            continue;
+          }
+          
+          const cell = document.createElement('div');
+          if (symbolIndex < remainingSymbols.length) {
+            const symbol = remainingSymbols[symbolIndex];
+            cell.className = `symbol${waitingForNext ? ' disabled' : ''}`;
+            cell.textContent = symbol;
+            cell.onclick = () => selectSymbol(cell, symbol);
+            symbolIndex++;
+          } else {
+            // خلية فارغة
+            cell.className = 'symbol disabled';
+            cell.textContent = '';
+          }
+          grid.appendChild(cell);
+        }
+      }
+
+      updateScoreDisplay();
+      document.getElementById('nextBtn').style.display = waitingForNext ? 'inline-block' : 'none';
+      document.getElementById('symbolsExhausted').style.display = 'none';
+    }
+
+    function selectSymbol(el, symbol) {
+      if (waitingForNext) return;
+
+      const team = teams[currentTurn];
+      const other = teams[1 - currentTurn];
+      
+      // الحصول على التأثير المخصص للرمز في هذه المعركة
+      const effect = symbolEffectsMap.get(symbol);
+      const points = effect.points;
+      
+      let targetTeam = "";
+      let message = "";
+      let colorClass = "";
+      
+      // تحديد الفريق المستهدف بناءً على إشارة النقاط
+      if (points >= 0) {
+        // نقاط موجبة: تخصم من الفريق الخصم
+        targetTeam = other;
+        scores[targetTeam] -= points;
+        colorClass = "effect-enemy"; // أخضر لتأثيرات الخصم
+        message = `<span class="${colorClass}">${effect.name}</span><br>تم خصم ${points} نقطة من ${targetTeam}!`;
+      } else {
+        // نقاط سالبة: تخصم من الفريق الحالي
+        targetTeam = team;
+        const absPoints = Math.abs(points);
+        scores[targetTeam] -= absPoints;
+        colorClass = "effect-self"; // أحمر لتأثيرات الفريق الحالي
+        message = `<span class="${colorClass}">${effect.name}</span><br>تم خصم ${absPoints} نقطة من ${targetTeam}!`;
+      }
+
+      document.getElementById('effectBox').innerHTML = message;
+
+      // تغيير الصورة المركزية حسب التأثير
+      const centerImg = document.getElementById('centerImage');
+      if (centerImg) {
+        centerImg.src = effect.image;
+      }
+
+      // إزالة الرمز المستخدم من قائمة الرموز المتبقية
+      remainingSymbols = remainingSymbols.filter(s => s !== symbol);
+
+      // التحقق من انتهاء اللعبة
+      if (scores[targetTeam] <= 0) {
+        scores[targetTeam] = 0; // تأكد أن النتيجة لا تنزل تحت الصفر
+        const winner = targetTeam === team ? other : team; // الفائز هو الفريق الآخر إذا خسر الفريق الحالي
+        const winComment = getWinComment(winner, targetTeam);
+        document.getElementById('effectBox').innerHTML += `\n\n<strong style="color:#ffcc00;font-size:24px;">${winComment}</strong>`;
+        document.getElementById('symbolGrid').innerHTML = ''; // إخفاء الرموز
+        document.getElementById('nextBtn').style.display = 'none'; // إخفاء زر التالي
+        return;
+      }
+
+      waitingForNext = true;
+      document.getElementById('nextBtn').style.display = 'inline-block';
+      // تعطيل جميع الرموز بعد الاختيار
+      document.querySelectorAll('.symbol').forEach(elm => elm.classList.add('disabled'));
+    }
+
+    function nextTurn() {
+      if (!waitingForNext) return;
+
+      waitingForNext = false;
+      currentTurn = currentTurn === 0 ? 1 : 0; // تبديل الدور
+
+      if (currentTurn === 0) {
+        round++; // زيادة رقم الجولة عندما يعود الدور للفريق الأول
+      }
+
+      showTurn(); // عرض الدور الجديد
+    }
+
+    function updateScoreDisplay() {
+      document.getElementById('scoreDisplay').innerHTML =
+        `${teams[0]}: <span class="score-value">${scores[teams[0]]}</span> نقطة |
+        ${teams[1]}: <span class="score-value">${scores[teams[1]]}</span> نقطة`;
+    }
+  </script>
+</body>
+</html>
